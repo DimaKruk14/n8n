@@ -1,0 +1,169 @@
+{
+  "name": "Crypto Market Analysis",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "9abbde29-a0ad-4725-b9b9-b7524db53534"
+    },
+    {
+      "parameters": {
+        "url": "https://www.coindesk.com/arc/outboundfeeds/rss/"
+      },
+      "name": "Crypto News",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [250, 0],
+      "id": "52c4c52a-d758-47ac-98e2-2dbdab771d7f"
+    },
+    {
+      "parameters": {
+        "resource": "coin",
+        "operation": "price",
+        "searchBy": "coinId",
+        "baseCurrencies": ["bitcoin", "ethereum"],
+        "quoteCurrencies": ["usd"],
+        "options": {
+          "include_24hr_change": true,
+          "include_market_cap": true
+        }
+      },
+      "name": "Market Data",
+      "type": "n8n-nodes-base.coinGecko",
+      "typeVersion": 1,
+      "position": [250, 150],
+      "id": "5afe0c64-ea6f-4d1b-b796-95776a38f4cd"
+    },
+    {
+      "parameters": {
+        "url": "https://www.tradingview.com/symbols/BTCUSD/",
+        "responseFormat": "string"
+      },
+      "name": "TradingView Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "f8d496c4-21e9-439e-be61-9a8b26b646d0"
+    },
+    {
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "const news = $items(\"Crypto News\")[0].json.items.map(i => i.title).slice(0,5).join('\n');\nconst prices = $items(\"Market Data\")[0].json;\nconst tradingViewHtml = $items(\"TradingView Page\")[0].json;\nreturn [{json:{news,prices,tradingViewHtml}}];"
+      },
+      "name": "Consolidate Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [500, 150],
+      "id": "405942d1-1306-47f5-a071-2fc6037f8500"
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a crypto market analyst. Summarize the provided data and give a short and medium term outlook."
+            },
+            {
+              "role": "user",
+              "content": "News:\n{{$json.news}}\nPrices: {{$json.prices}}\nTradingView: {{$json.tradingViewHtml}}"
+            }
+          ]
+        }
+      },
+      "name": "Market Summary",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [750, 150],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI Account"
+        }
+      },
+      "id": "2bfc93c1-a417-4da0-955c-9d5371975c25"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Crypto News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Market Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TradingView Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto News": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Market Data": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TradingView Page": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate Data": {
+      "main": [
+        [
+          {
+            "node": "Market Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2025-07-04T12:00:00.000Z",
+  "updatedAt": "2025-07-04T12:00:00.000Z",
+  "settings": {},
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": null,
+  "triggerCount": 0,
+  "tags": []
+}
